@@ -1,0 +1,11 @@
+parameters: None # take in something from (copy of) parameters to determine e.g. grid deltas?
+
+asics:
+  - physical_id: 0
+    loc: [0,0]
+    connections:
+      n: null
+      w: fpga0
+      s: null
+      e: null
+      

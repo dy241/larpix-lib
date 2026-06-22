@@ -81,7 +81,7 @@ class strand:
             downstream = child_node.parent_port
 
             # prepare the parent for child configuration:
-            parent_node = None;
+            parent_node = None
             if not child_node.parent_id == "fpga":
                 parent_node = nodes[child_node.parent_id]
 

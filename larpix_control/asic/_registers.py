@@ -522,3 +522,38 @@ def print_field_reset_values(asic_dict):
             reset_val_str = f"{reset_val:#x}"
 
         print(f"{name:<30} {reset_val_str:<20}")
+
+
+
+### New
+def build_field_to_reset_value_lut(asic_dict):
+    """
+    Returns field to reset value lookup table
+    """
+    lut = {}
+    reg_size = asic_dict['register_space']['parameters']['reg_size']
+
+    for field in asic_dict['register_space']['fields']:
+        name = field['name']
+        if 'array' in field:
+            n_elements = field['array']
+            reset_value = field["reset_value"]
+            if type(reset_value) == int:
+                for idx in range(n_elements):
+                    lut[f"{name}[{idx}]"] = reset_value
+            elif type(reset_value) == list:
+                for idx in range(n_elements):
+                    lut[f"{name}[{idx}]"] = reset_value[idx]
+        else:
+            reg = field['register']
+            reset_value = field["reset_value"]
+            lut[name] = reset_value
+    return lut
+
+def get_reg_size(asic_dict):
+    reg_size = asic_dict['register_space']['parameters']['reg_size']
+    return reg_size
+
+def get_num_registers(asic_dict):
+    num_registers = asic_dict['register_space']['parameters']['num_registers']
+    return num_registers

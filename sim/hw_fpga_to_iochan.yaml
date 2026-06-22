@@ -1,0 +1,8 @@
+# should be equivalent of config/network/.yaml files?
+# need io_group?
+# should this be other way around? doesn't matter really i guess
+
+fpga0: 0
+fpga1: 1
+fpga2: 2
+fpga3: 3

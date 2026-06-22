@@ -31,6 +31,9 @@ class asic_spec:
         self._input_indices = {port: i for i, port in enumerate(self._input_directions)}
         self._output_indices = {port: i for i, port in enumerate(self._output_directions)}
 
+        ### New
+        self.field_to_reset_value = _reg.build_field_to_reset_value_lut(self.asic_dict)
+
     def name(self):
         return self.asic_dict["name"]
 
@@ -208,19 +211,19 @@ class asic_spec:
 
     def valid_config_read_response(self, packet: int) -> bool:
         """Check if packet is a valid configuration read response."""
-        return valid_config_read_response(self.asic_dict, packet)
+        return _pkt.valid_config_read_response(self.asic_dict, packet)
 
-    def parse_chip_address_value(asic_dict: dict, packet: int) -> [int,int,int]:
+    def parse_chip_address_value(self, packet: int) -> [int,int,int]:
         """Parse chip, address, and value from a valid config packet"""
-        return parse_chip_address_value(self.asic_dict, packet)
+        return _pkt.parse_chip_address_value(self.asic_dict, packet)
 
-    def parse_config_packet_fields(asic_dict: dict, packet: int) -> dict:
+    def parse_config_packet_fields(self, packet: int) -> dict:
         """Parse a packet and returns a dictionary of all of its fields."""
-        return parse_config_packet_fields(self.asic_dict, packet)
+        return _pkt.parse_config_packet_fields(self.asic_dict, packet)
 
     def print_packet_detailed(self, packet: int) -> None:
         """Print a detailed description of the contents of a config packet."""
-        return print_packet_detailed(self.asic_dict, packet)
+        return _pkt.print_packet_detailed(self.asic_dict, packet)
 
     def format_packet(self, packet: int) -> str :
         """Return a string representation of a config packet."""
@@ -242,6 +245,30 @@ class asic_spec:
         """Get a copy of the register-to-field look-up table."""
         return copy.deepcopy(self.reg_to_field)
 
+    def get_field_to_reset_value_lut(self):
+        return copy.deepcopy(self.field_to_reset_value)   
+
+    def get_reg_size(self):
+        return _reg.get_reg_size(self.asic_dict)
+    
+    def get_num_registers(self):
+        return _reg.get_num_registers(self.asic_dict)
+    
+    def valid_config_write(self, packet, downstream=None):
+        return _pkt.valid_config_write(self.asic_dict, packet, downstream)
+    
+    def valid_config_read_request(self, packet):
+        return _pkt.valid_config_read_request(self.asic_dict, packet)
+    
+    def valid_config_read_response(self, packet):
+        return _pkt.valid_config_read_response(self.asic_dict, packet)
+    
+    def valid_upstream_packet(self, packet):
+        return _pkt.valid_upstream_packet(self.asic_dict, packet)
+        
+    def valid_downstream_packet(self, packet):
+        return _pkt.valid_downstream_packet(self.asic_dict, packet)
+    
 def asic_spec_from_yaml(path: str):
     """Create an asic_spec instance from a YAML configuration file.
 

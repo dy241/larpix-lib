@@ -238,13 +238,27 @@ def valid_config_packet(asic_dict: dict, packet: int, write: Optional[int]=None,
 
     return True
 
+def valid_upstream_packet(asic_dict: dict, packet: int):
+    return valid_config_packet(asic_dict, packet, write=None, downstream=0)
+
+def valid_downstream_packet(asic_dict: dict, packet: int):
+    return valid_config_packet(asic_dict, packet, write=None, downstream=1)
+
+def valid_config_write(asic_dict: dict, packet: int, downstream: Optional[int]=None) -> bool:
+    """Check if packet is a valid write packet."""
+    return valid_config_packet(asic_dict, packet, write=True, downstream=downstream)
+
+def valid_config_read_request(asic_dict: dict, packet: int) -> bool:
+    """Check if packet is a valid read packet."""
+    return valid_config_packet(asic_dict, packet, write=None, downstream=0) and not valid_config_write(asic_dict, packet)
+
 def valid_config_read_response(asic_dict: dict, packet: int) -> bool:
     """Check if packet is a valid configuration read response."""
     return valid_config_packet(asic_dict, packet,downstream=1,write=False)
 
 def parse_chip_address_value(asic_dict: dict, packet: int) -> [int,int,int]:
     """Parse chip, address, and value from a valid config packet"""
-    fields       = asic_dict["config_packet"]["fields"];
+    fields       = asic_dict["config_packet"]["fields"]
     chip  = _get_bits(packet, *fields["chip"]["bits"])
     addr  = _get_bits(packet, *fields["addr"]["bits"])
     value = _get_bits(packet, *fields["value"]["bits"])
@@ -275,11 +289,11 @@ def print_packet_detailed(asic_dict: dict, packet: int) -> None:
     print(f"INFO:  type:  {type_bits}", end=" ")
 
     if type_bits == params["type_write"]:
-        print("(WRITE)");
+        print("(WRITE)")
     elif type_bits == params["type_read"]:
-        print("(READ)");
+        print("(READ)")
     else:
-        print("(NOT CONFIG)");
+        print("(NOT CONFIG)")
 
     # Upstream/Downstream
     downstream_bits = parsed["downstream"]
@@ -355,5 +369,5 @@ def format_packet(asic_dict: dict, packet: int) -> str:
     return " ".join(parts)
 
 def print_packet(asic_dict: dict, packet: int) -> None:
-    print(format_packet(asic_dict,packet));
+    print(format_packet(asic_dict,packet))
 
