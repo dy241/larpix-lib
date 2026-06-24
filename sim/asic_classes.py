@@ -147,14 +147,14 @@ class ASIC:
         for i in range(self.num_registers):
             print(i, hex(self.registers[i]), "\n")
 
-    def print_all_updated_registers(self):
+    def print_updated_registers(self):
         any_updates = False
         for i in range(self.num_registers):
             if self.registers[i] != self.reset_registers[i]:
                 any_updates = True
                 print(i, hex(self.registers[i]))
         if not any_updates:
-            print("No updated values")  
+            print("No updated values")
         print("\n")
 
     def _get_register(self, register_num): # useful for asic_grid level debugging?

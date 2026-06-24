@@ -38,7 +38,7 @@ _pkt.print_packet_detailed(asic_dict, packet)
 
 print(f"*** intepreting packet from provide value: ***")
 #pkt = 0x422541391C2DE82F
-pkt = 0xC22541391C09F82F
+pkt = 0x822541391C05F42E
 print(f"packet:  0x{pkt:016X}")
 _pkt.print_packet_detailed(asic_dict, pkt)
 
