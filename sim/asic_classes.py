@@ -44,52 +44,19 @@ class ASIC:
         # also need the in/out map to know what channel to receive on, get from asic_spec.params
 
     def _get_chip_id(self): # move this+get_enables to asic_helper
-        reg, width, offset, mask = self.field_to_reg[f"chip_id"]
-        chip_id_reg_val = self.registers[reg]
-        chip_id = (chip_id_reg_val & mask) >> offset
-        return chip_id
+        return _as.get_reg(self, "chip_id")
 
     def _get_downstream_enables(self):
-        ds_enables = [None] * self.num_ports
-        for idx in range(self.num_ports):
-            reg, width, offset, mask = self.field_to_reg[f"enable_piso_downstream[{idx}]"]
-            ds_reg_val = self.registers[reg]
-            ds = (ds_reg_val & mask) >> offset
-            ds_enables[idx] = ds
-        return ds_enables
+        return _as.get_enable_arr(self, "enable_piso_downstream")
     
     def _get_upstream_enables(self):
-        us_enables = [None] * self.num_ports
-        for idx in range(self.num_ports):
-            reg, width, offset, mask = self.field_to_reg[f"enable_piso_upstream[{idx}]"]
-            us_reg_val = self.registers[reg]
-            us = (us_reg_val & mask) >> offset
-            us_enables[idx] = us
-        return us_enables
+        return _as.get_enable_arr(self, "enable_piso_upstream")
     
     def _get_listen_enables(self):
-        listen_enables = [None] * self.num_ports
-        for idx in range(self.num_ports):
-            reg, width, offset, mask = self.field_to_reg[f"enable_posi[{idx}]"]
-            listen_reg_val = self.registers[reg]
-            listen = (listen_reg_val & mask) >> offset
-            listen_enables[idx] = listen
-        return listen_enables
+        return _as.get_enable_arr(self, "enable_posi")
 
     def _set_register(self, reg, width, offset, val):
-        # TODO: check if bits or val exceed register size
-        if reg >= self.num_registers:
-            print("register out of range")
-            return
-        if val >= 2 ** self.reg_size:
-            print("trying to set value larger than register size")
-        reg_val = self.registers[reg]
-        val = val * 2 ** offset
-        val = val % (2 ** self.reg_size)
-        mask = 2 ** (width + offset) - 2 ** offset # ones where bits should be replaced
-        reg_val = reg_val & (~mask & 255) # TODO: replace with 2 ** regsize - 1
-        reg_val = reg_val | val
-        self.registers[reg] = reg_val
+        _as.set_register(self, reg, width, offset, val)
 
     # methods
     def reset(self):

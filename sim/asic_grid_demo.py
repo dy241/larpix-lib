@@ -18,7 +18,6 @@ verbose = False
 asic_s = asic_spec_from_yaml("config/asics/larpix_v3.yaml")
 hw_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_ex_two.yaml"
 io_req = ac.ASIC_GRID(hw_yaml, asic_s)
-verbose = True
 
 def main():
 

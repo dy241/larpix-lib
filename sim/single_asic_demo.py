@@ -17,7 +17,7 @@ def print_break():
 v3_spec = asic_spec_from_yaml("config/asics/larpix_v3.yaml")
 hw_single = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_ex_two.yaml"
 
-asic_grid = ac.ASIC_GRID(hw_single, v3_spec)
+asic_grid = ac.AsicGrid(hw_single, v3_spec)
 asic0 = asic_grid.asic_ids[0]
 asic1 = asic_grid.asic_ids[1]
 
@@ -26,10 +26,10 @@ correct_set_id = 0x022541391C2DE806 # set 0x01 (asic0) to 0x0b
 wrong_set_id = 0x022541391C2DE82E
 
 asic_grid.send_packets(0, [wrong_set_id])
-asic0.print_all_updated_registers()
+asic0.print_updated_registers()
 
 asic_grid.send_packets(0, [correct_set_id])
-asic0.print_all_updated_registers()
+asic0.print_updated_registers()
 ###
 
 print_break()
@@ -47,15 +47,15 @@ asic_grid.send_packets(0, [asic0_set_ds_pkt, asic0_set_us_pkt, asic1_set_id_pkt,
 asic0.print_tx_buffers()
 asic_grid.update(4) # maximum
 
-asic0.print_all_updated_registers()
-asic1.print_all_updated_registers()
+asic0.print_updated_registers()
+asic1.print_updated_registers()
 
 print_break()
 
 # shouldnt change after more updates
 asic_grid.update(1)
-asic0.print_all_updated_registers()
-asic1.print_all_updated_registers()
+asic0.print_updated_registers()
+asic1.print_updated_registers()
 ###
 
 
