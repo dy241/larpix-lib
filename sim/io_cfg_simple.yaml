@@ -1,0 +1,9 @@
+channels:
+  fpga0: 0
+  fpga1: 1
+  fpga2: 2
+  fpga3: 3
+  fpga4: 4
+  fpga5: 5
+  fpga6: 6
+  fpga7: 7

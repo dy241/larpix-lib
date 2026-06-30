@@ -3,19 +3,20 @@ import larpix_control.asic.asic_spec as _as
 
 class PacketCorrelator:
     def __init__(self, asic_spec: _as.asic_spec):
-        self.io_group = 0 # change once figure out how to incorporate io_group, io_chan
-        self.io_chan = 0
+        # will it be useful to have a list of packets in/out?
         self.asic_spec = asic_spec
-        self.packets_in = []
-        self.packets_out = []
         self.reply_dic = {} # {(io_group, io_chan, chip_id, addr) : [n expected, [packet list]]}
         self.unmatched_packets_dic = {} # same format as reply_dic, holds unexpected reply packets
 
-    def set_packets_in(self, pkt_list): # how to incorporate io_group/io_chan info?
-        io_group = self.io_group
-        io_chan = self.io_chan
+    def set_packets_in(self, pkt_list): # pkt list in format [(pkt, io_group, io_chan), ...]
+        # resets everything
+        self.reply_dic = {}
+        self.unmatched_packets_dic = {}
         # parse pkt_list into key of dict
-        for pkt in pkt_list:
+        for pkt_tuple in pkt_list:
+            pkt = pkt_tuple[0]
+            io_group = pkt_tuple[1]
+            io_chan = pkt_tuple[2]
             # validate each pkt is a valid read request
             if not self.asic_spec.valid_config_read_request(pkt): # not valid
                 continue # disregard packet
@@ -29,10 +30,11 @@ class PacketCorrelator:
                     self.reply_dic[key] = [1, []]
 
     def add_packets_out(self, pkt_list):
-        io_group = self.io_group
-        io_chan = self.io_chan
         # parse
-        for pkt in pkt_list:
+        for pkt_tuple in pkt_list:
+            pkt = pkt_tuple[0]
+            io_group = pkt_tuple[1]
+            io_chan = pkt_tuple[2]
             # validate each packet is a read response
             if not self.asic_spec.valid_config_read_response(pkt):
                 continue # disregard packet

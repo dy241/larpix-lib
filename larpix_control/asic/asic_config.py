@@ -31,7 +31,7 @@ class asic_config(asic_config_iface):
 
     # hack for TX during development:
     def tx_list(self, l: [int]):
-        self.io_req.send_packets(1, l)
+        self.io_req.send_packets(1, l) # aha!
         for w in l:
             pkt = self.spec.format_packet(w)
             print(f"#TRACE I/O:  0x{w:016X} {pkt}")

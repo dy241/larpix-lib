@@ -1,3 +1,5 @@
+from asic_classes import *
+
 def hexify(num):
     # return a 8 byte padded hex string given an int
     # https://stackoverflow.com/questions/12638408/decorating-hex-function-to-pad-zeros
@@ -49,6 +51,37 @@ def set_register(asic, reg, width, offset, val):
     reg_val = reg_val | val
     asic.registers[reg] = reg_val
 
+def _add_packet_to_buffers(asic, packet):
+    buffer_idxs = [0] * asic.num_ports # if not valid, dont add to any buffers
+    if asic.asic_spec.valid_downstream_packet(packet):
+        # send downstream
+        buffer_idxs = asic._get_downstream_enables()
+    elif asic.asic_spec.valid_upstream_packet(packet):
+        # send upstream
+        buffer_idxs = asic._get_upstream_enables()
+    for i in range(asic.num_ports):
+        if buffer_idxs[i]:
+            asic.tx_buffers[i].append(packet)
+
+def rx(asic: ASIC, packet:int, channel:int): 
+    # TODO: document (and move to helper)
+    # check if listening on channel
+    if (channel >= 0) and (not asic._get_listen_enables()[channel]): # ignore listen check if channel is negative (for debugging)
+        return
+    
+    chip, addr, val = asic.asic_spec.parse_chip_address_value(packet)
+    if chip == asic._get_chip_id():
+        if asic.asic_spec.valid_config_read_request(packet):
+            response_val = asic.registers[addr]
+            response_packet = asic.asic_spec.build_config_packet(chip, addr, response_val, downstream=1, write=False)
+            _add_packet_to_buffers(asic, response_packet)
+        elif asic.asic_spec.valid_config_read_response(packet):
+            _add_packet_to_buffers(asic, packet)
+        elif asic.asic_spec.valid_config_write(packet):
+            set_register(asic, addr, 8, 0, val)
+    else:
+        # "not for me"
+        _add_packet_to_buffers(asic, packet)
 
 
-# for asic_grid    
+# for AsicGrid    

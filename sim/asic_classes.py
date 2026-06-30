@@ -4,6 +4,7 @@ from larpix_control import asic_spec, asic_spec_from_yaml, fragment_lib_from_yam
 from larpix_control.common.interfaces import io_request_iface
 import sim._asic_helper as _as
 import numpy as np
+from packet_correlator import PacketCorrelator
 
 import copy
 import time
@@ -63,40 +64,14 @@ class ASIC:
         self.registers = copy.deepcopy(self.reset_registers)
 
     def rx(self, packet:int, channel:int): 
-        # TODO: document (and move to helper)
-        # check if listening on channel
-        if (channel >= 0) and (not self._get_listen_enables()[channel]): # ignore listen check if channel is -1 (for debugging)
-            return
-        
-        chip, addr, val = self.asic_spec.parse_chip_address_value(packet)
-        if chip == self._get_chip_id():
-            if self.asic_spec.valid_config_read_request(packet):
-                response_val = self.registers[addr]
-                response_packet = self.asic_spec.build_config_packet(chip, addr, response_val, downstream=1, write=False)
-                self._add_packet_to_buffers(response_packet)
-            elif self.asic_spec.valid_config_read_response(packet):
-                self._add_packet_to_buffers(packet)
-            elif self.asic_spec.valid_config_write(packet):
-                self._set_register(addr, 8, 0, val)
-        else:
-            # "not for me"
-            self._add_packet_to_buffers(packet)
+        _as.rx(self, packet, channel)
 
-    def _add_packet_to_buffers(self, packet):
-        buffer_idxs = [0] * self.num_ports # if not valid, dont add to any buffers
-        if self.asic_spec.valid_downstream_packet(packet):
-            # send downstream
-            buffer_idxs = self._get_downstream_enables()
-        elif self.asic_spec.valid_upstream_packet(packet):
-            # send upstream
-            buffer_idxs = self._get_upstream_enables()
-        for i in range(self.num_ports):
-            if buffer_idxs[i]:
-                self.tx_buffers[i].append(packet)
+    def _add_packet_to_buffers(self, packet): # shouldn't need since implementation of rx offloaded to asic_helper
+        _as._add_packet_to_buffers(self, packet)
         
     
     def tx(self, channel):
-        if self.tx_empty(channel):
+        if self.tx_empty(channel): # asic shouldn't ever be asked to tx if channel is empty, check should be made elsewhere
             raise Exception(f"{self}'s tx_buffer[{channel}] is empty")
         return self.tx_buffers[channel].popleft()
     
@@ -124,7 +99,7 @@ class ASIC:
             print("No updated values")
         print("\n")
 
-    def _get_register(self, register_num): # useful for asic_grid level debugging?
+    def _get_register(self, register_num): # useful for AsicGrid level debugging?
         # returns a padded 8 byte register as a string
         val = self.registers[register_num]
         return hexify(val)
@@ -133,19 +108,12 @@ class ASIC:
         print(self.tx_buffers)
 
 
-class ASIC_GRID(io_request_iface): # config defined: should take in a yaml instead of software level
+class AsicGrid(io_request_iface): # config defined: should take in a yaml instead of software level
     # reasonable balance between "anything is allowed" and "specific setup", should have some physical constraints
     # should always be a rectangular-ish grid
     # specify input port for fpga
-
-    # doesn't do anything right now
-    # do i need this? should the ASIC directly slot into something already in larpix-lib?
-    # no i should need it, the packets only come/go from one place
-    # hmm but the hydra strand literally handles this, should i just init a bunch of asics and throw them into strand?
-    # but it might be nice to have a network that can clock/update...? unsure what strand really does
-    # will keep for now
     
-    def __init__(self, hw_yaml, asic_spec):
+    def __init__(self, hw_yaml, io_yaml, asic_spec):
         
         self.asic_spec = asic_spec
         self.asic_num_ports = asic_spec.num_ports()
@@ -157,7 +125,12 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
         self.asic_connections = {} # dict from hardware id to dict of num_ports connected ids ({n,w,s,e} for 4?)
         # needs: root_asics (where the fpga sends packets to), could be multiple, needs connected direction as well
         # dict from fpga out to [asic, which dir asic is connected on]
-        self.root_asics = {} # {fpga channel: [asic_id, direction asic receives on]}
+        self.root_asics = {} # {io chan: [[asic_id, direction asic receives on], * however many connections]}
+
+        # for io_request_iface reply capability:
+        self.timeout = 1000000 # cycles, not ms
+        self.io_group = 0
+        self.pc = PacketCorrelator(self.asic_spec)
 
         # for debugging: need some idea of grid geometry so it can draw the grid
         self.x_min = np.inf
@@ -165,6 +138,10 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
         self.y_min = np.inf
         self.y_max = -np.inf
         self.loc_dic = {} # loc to physical id
+
+        # parse fpga to io chan yaml
+        io_cfg = common.dict_from_yaml(io_yaml)
+        self.fpga_to_io_dic = io_cfg["channels"]
         
         # parse hw yaml!
         hw_cfg = common.dict_from_yaml(hw_yaml)
@@ -199,10 +176,14 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
             for dir in connections.keys():
                 neighbor_id = connections[dir]
                 if isinstance(neighbor_id, str):
-                    self.root_asics[neighbor_id] = [asic_id, dir] # e.g. root_asics["fpga0"] = [asic_id, receiving channel]
+                    io_chan = self.fpga_to_io_dic[neighbor_id]
+                    if io_chan not in self.root_asics:
+                        self.root_asics[io_chan] = [[asic_id, dir]] # e.g. root_asics["fpga0"] = [asic_id, receiving channel]
+                    else:
+                        self.root_asics[io_chan].append([asic_id, dir])
                 self.asic_connections[asic_id][dir] = neighbor_id
             
-        # TODO: check if nonexistent/one-way connections
+        # TODO: check if nonexistent/one-way connections/more config validation
         for asic_id in self.asic_ids.keys():
             pass
 
@@ -211,15 +192,17 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
         self.actions = 0
         self.init_time = time.time() # dunno if will need
 
-        self.received_packets = [] 
+        self.received_packets = [] # [(pkt, io_chan), * ...]
 
         
 
-    def send_packets_to_root(self, packets):
+    def send_packets_to_root(self, packets, io_chan):
+        if io_chan not in self.root_asics:
+            return
         for packet in packets:
-            for fpga_channel in self.root_asics.keys(): # direction matters? right now packets always go out in same order
-                asic_id = self.root_asics[fpga_channel][0]
-                receiving_dir = self.root_asics[fpga_channel][1]
+            for i in range(len(self.root_asics[io_chan])):
+                asic_id = self.root_asics[io_chan][i][0]
+                receiving_dir = self.root_asics[io_chan][i][1]
                 asic = self.asic_ids[asic_id]
                 self.send_packet_individual(asic, receiving_dir, packet)
 
@@ -227,15 +210,22 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
         receive_chan = self.dir_to_idx(self.invert_dir(dir))
         asic.rx(packet, receive_chan)
     
-    def update(self, cycles=1, timeout=1000000):
+    def update(self, cycles=1):
+        counter = 0
         if cycles < 0: # update until empty if negative arg given
-            while not self.all_asic_buffers_empty(): # add a break condition
+            while not self.all_asic_buffers_empty():
+                counter += 1
                 self._single_update()
+                if counter > self.timeout: 
+                    break
         else:
             for _ in range(cycles):
                 if self.all_asic_buffers_empty():
                     break
+                counter += 1
                 self._single_update()
+                if counter > self.timeout:
+                    break
 
     def _single_update(self):
         # pop one packet from each buffer
@@ -260,9 +250,10 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
                         receiving_asic.rx(packet, receive_chan)
                     elif type(receiver_id) == str:
                         # send to fpga
-                        self.received_packets.append(hexify(packet)) #TODO: add print method later with hex so that here it can stay as ints
+                        io_chan = self.fpga_to_io_dic[receiver_id]
+                        self.received_packets.append((packet, io_chan)) #TODO: add print method later with hex so that here it can stay as ints
                     else:
-                        print("exception in asic_grid.update()")
+                        print("exception in AsicGrid.update()")
 
     def all_asic_buffers_empty(self):
         return all([asic.tx_all_empty() for asic in self.asic_ids.values()])
@@ -292,7 +283,7 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
         if keyword is not None and not (type(keyword) == str or type(keyword) == int):
             print("keyword type not supported")
             return
-        if type(keyword) == int and (keyword < 0 or keyword > 255):
+        if type(keyword) == int and (keyword < 0 or keyword >= 2 ** self.asic_spec.get_reg_size()):
             print("printing register out of bounds")
             return
         if type(keyword) == str and keyword not in self.asic_spec.field_to_reg:
@@ -324,12 +315,16 @@ class ASIC_GRID(io_request_iface): # config defined: should take in a yaml inste
 
     # interface capabilities
     def send_packets(self, io_chan, packets):
-        self.send_packets_to_root(packets)
+        self.send_packets_to_root(packets, io_chan)
         # needs to return messages from asics in network
-        return # Returns a list of reply bytes (or None if timeout).
+        io_group = self.io_group
+        self.pc.set_packets_in([(pkt, io_group, io_chan) for pkt in packets])
+        self.update(-1)
+        self.pc.add_packets_out([(item[0], io_group, item[1]) for item in self.received_packets])
+        return self.pc.reply()
     
     def send_string(self, s): # should be a high level command, e.g. "reset_all" to reset all asics in grid
         pass
     
-    def set_timeout(self, timeout_ms): # shrug, maybe to catch loops? grid needs to track timesteps/# actions taken
-        pass
+    def set_timeout(self, timeout_ms):
+        self.timeout = timeout_ms * 1000 # assume each cycle takes 1 us

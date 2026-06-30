@@ -17,7 +17,8 @@ verbose = False
 
 asic_s = asic_spec_from_yaml("config/asics/larpix_v3.yaml")
 hw_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_ex_two.yaml"
-io_req = ac.ASIC_GRID(hw_yaml, asic_s)
+io_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/io_cfg_simple.yaml"
+io_req = ac.AsicGrid(hw_yaml, io_yaml, asic_s)
 
 def main():
 
@@ -25,7 +26,7 @@ def main():
         raw_network = common.dict_from_yaml("config/hydra/single.yaml")
         raw_params  = common.dict_from_yaml("config/hydra/parameters.yaml")
 
-        # Replaced original (pacman_io_request("config/network/single_local.yaml")) with sim asic_grid
+        # Replaced original (pacman_io_request("config/network/single_local.yaml")) with sim AsicGrid
         
 
         cfg = asic_config(io_req, asic_s, frag_lib, verbose=verbose)
