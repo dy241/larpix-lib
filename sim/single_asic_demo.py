@@ -16,9 +16,8 @@ def print_break():
 
 v3_spec = asic_spec_from_yaml("config/asics/larpix_v3.yaml")
 hw_single = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_ex_two.yaml"
-io_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/io_cfg_simple.yaml"
 
-asic_grid = ac.AsicGrid(hw_single, io_yaml, v3_spec)
+asic_grid = ac.AsicGrid(hw_single, v3_spec)
 asic0 = asic_grid.asic_ids[0]
 asic1 = asic_grid.asic_ids[1]
 

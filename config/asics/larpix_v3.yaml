@@ -632,6 +632,61 @@ register_space:
       reset_value: 0x5
       description: LVDS common-mode voltage for each PISO link
 
+data_packet:
+  parameters:
+    total_bits: 64
+    parity_value: 1
+    type_data: 0b01
+  fields:
+    type:
+      bits: [1, 0]
+      description: Command type (0b01 = data)
+      const: {data: 0b01}
+
+    chip:
+      bits: [9, 2]
+      description: Chip address (8 bits)
+
+    channel:
+      bits: [15, 10]
+      description: data channel (6 bit)
+
+    timestamp:
+      bits: [43, 16]
+      description: 28-bit timestamp
+    
+    reset_sample_flag:
+      bits: [44, 44]
+      description: If in CDS mode, set to 1 for reset sample, 0 for data samples
+
+    cds_flag:
+      bits: [45, 45]
+      description: (0 no correlated double-sampling, 1 correlated double-sampling)
+
+    data_word:
+      bits: [55, 46]
+      description: 10-bit ADC data word
+    
+    trigger:
+      bits: [57, 56]
+      description: 00 Normal, 01 External, 10 Cross, 11 Periodic
+
+    local_fifo:
+      bits: [59, 58]
+      description: 58 FIFO half full, 59 FIFO full
+
+    shared_fifo:
+      bits: [61, 60]
+      description: 60 FIFO half full, 61 FIFO full
+
+    downstream:
+      bits: [62, 62]
+      description: 0 Upstream Packet, 1 Downstream Packet
+
+    parity:
+      bits: [63, 63]
+      description: Parity bit (ASIC requires overall parity = 1)
+
 config_packet:
   parameters:
     total_bits: 64

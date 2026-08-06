@@ -15,7 +15,7 @@ def main():
         raw_params  = common.dict_from_yaml("config/hydra/parameters.yaml")
         io_req = pacman_io_request("config/network/single_local.yaml")
         cfg = asic_config(io_req, asic_spec, frag_lib, verbose=verbose)
-        strand = hydra_strand(raw_network, raw_params, cfg)
+        strand = hydra_strand(raw_network, raw_params, cfg, 0)
 
         if verbose:
                 print("INFO: printing table for hydra strand")

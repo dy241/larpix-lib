@@ -51,7 +51,7 @@ def set_register(asic, reg, width, offset, val):
     reg_val = reg_val | val
     asic.registers[reg] = reg_val
 
-def _add_packet_to_buffers(asic, packet):
+def _add_packet_to_buffers(asic: ASIC, packet):
     buffer_idxs = [0] * asic.num_ports # if not valid, dont add to any buffers
     if asic.asic_spec.valid_downstream_packet(packet):
         # send downstream
@@ -63,8 +63,8 @@ def _add_packet_to_buffers(asic, packet):
         if buffer_idxs[i]:
             asic.tx_buffers[i].append(packet)
 
-def rx(asic: ASIC, packet:int, channel:int): 
-    # TODO: document (and move to helper)
+def rx(asic: ASIC, packet:int, channel:int) -> None:
+    # does no validation before sending besides type bits and up/downstream
     # check if listening on channel
     if (channel >= 0) and (not asic._get_listen_enables()[channel]): # ignore listen check if channel is negative (for debugging)
         return
@@ -75,13 +75,16 @@ def rx(asic: ASIC, packet:int, channel:int):
             response_val = asic.registers[addr]
             response_packet = asic.asic_spec.build_config_packet(chip, addr, response_val, downstream=1, write=False)
             _add_packet_to_buffers(asic, response_packet)
+            return
         elif asic.asic_spec.valid_config_read_response(packet):
             _add_packet_to_buffers(asic, packet)
+            return
         elif asic.asic_spec.valid_config_write(packet):
             set_register(asic, addr, 8, 0, val)
-    else:
-        # "not for me"
-        _add_packet_to_buffers(asic, packet)
+            return
+    # "not for me"
+    # includes data packets
+    _add_packet_to_buffers(asic, packet)
 
 
 # for AsicGrid    

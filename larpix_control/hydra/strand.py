@@ -12,7 +12,7 @@ class strand:
     Represents a single Hydra network (strand) attached to one UART.
     Owns the network topology, chip states, and an ASIC specification.
     """
-    def __init__(self, raw_hnet: dict, raw_hparams: dict, config: common.asic_config_iface):
+    def __init__(self, raw_hnet: dict, raw_hparams: dict, config: common.asic_config_iface, io_chan: int):
         """
         Initialize the Hydra strand.
 
@@ -38,6 +38,9 @@ class strand:
 
         # build the node tree from the fixed network:
         self.node_tree = _impl.build_node_tree(self.hnet, self.hparams)
+
+        # keep track of which io_channel the UART is associated with
+        self.io_chan = io_chan
 
     def print_hydra_table(self):
         _impl.print_hydra_table(self.hnet, self.hparams)
@@ -88,25 +91,25 @@ class strand:
                 _impl.assert_parent_child(parent_node, child_node, self.hparams, io_ready=True)
 
                 parent_upstream = _impl.get_io_ready_upstream_ports(parent_node, nodes, next_child_id=child_id)
-                cfg.set_upstream_output_enables(parent_node.chip_id, parent_upstream)
+                cfg.set_upstream_output_enables(parent_node.chip_id, parent_upstream, self.io_chan)
 
             # set chip id (value after reset is 1):
-            cfg.set_chip_id(child_id)
+            cfg.set_chip_id(child_id, self.io_chan)
 
             # init I/O for root chip or non-root chip as appropriate:
             if parent_node is None:
-                cfg.init_root_chip_io(child_id, downstream)
+                cfg.init_root_chip_io(child_id, downstream, self.io_chan)
             else:
-                cfg.init_io(child_id)
+                cfg.init_io(child_id, self.io_chan)
 
             # at init we only listen to downstream:
-            cfg.set_input_enables(child_id, downstream)
+            cfg.set_input_enables(child_id, downstream, self.io_chan)
 
             # at init we send nothing upstream:
-            cfg.set_upstream_output_enables(child_id, [])
+            cfg.set_upstream_output_enables(child_id, [], self.io_chan)
 
             # set downstream to parent only:
-            cfg.set_downstream_output_enables(child_id, downstream)
+            cfg.set_downstream_output_enables(child_id, downstream, self.io_chan)
 
             # mark this node as I/O ready (even though upstream is not yet ready.)
             child_node.io_ready = True
@@ -115,7 +118,7 @@ class strand:
             # update parent inputs
             if not parent_node is None:
                 parent_input = _impl.get_input_ports(parent_node, nodes)
-                cfg.set_input_enables(parent_node.chip_id, parent_input)
+                cfg.set_input_enables(parent_node.chip_id, parent_input, self.io_chan)
 
             # add grand children to the queue
             for id in sorted(child_node.children.keys()):

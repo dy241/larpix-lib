@@ -12,7 +12,7 @@ def main():
         toy = asic_config_toy(verbose=True)
         raw_network = common.dict_from_yaml("config/hydra/row.yaml")
         raw_params  = common.dict_from_yaml("config/hydra/parameters.yaml")
-        strand = hydra_strand(raw_network, raw_params, toy)
+        strand = hydra_strand(raw_network, raw_params, toy, 0)
 
         print("INFO: printing table for hydra strand")
         strand.print_hydra_table()

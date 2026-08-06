@@ -1,0 +1,11 @@
+#
+# *013+023+033
+#
+
+chips:
+  - chip_id: 13
+    w: fpga
+    e: 23
+  - chip_id: 23
+    e: 33
+  - chip_id: 33

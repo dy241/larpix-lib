@@ -201,7 +201,10 @@ class asic_spec:
         reg_list = self.build_read_list(refresh=refresh)
         return [self.build_config_read(chip, addr) for addr in reg_list]
 
-
+    def valid_data_packet(self, packet: int,
+                          downstream: Optional[int]=None):
+        return _pkt.valid_data_packet(self.asic_dict, packet, downstream)
+    
     def valid_config_packet(self, packet: int,
                             write: Optional[int]=None,
                             downstream: Optional[int]=None) -> bool:

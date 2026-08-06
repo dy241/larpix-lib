@@ -18,10 +18,10 @@ asic_spec = _as.asic_spec_from_yaml("/Users/davidyang/Desktop/larpix-lib/config/
 asic_dict = asic_spec.asic_dict
 _pkt.validate_config_packet_dict(asic_dict,verbose=True)
 
-chip = 0x01
+chip = 0x1f
 # us, ds, listen is 124, 125, 126, chip_id is 122
-addr = 122
-value = 0x0c
+addr = 126
+value = 0x0f
 
 print(f"*** creating write packet from provided values: ***")
 print(f"INFO chip:  {chip}  addr:  {addr}  value: {value}")

@@ -54,4 +54,4 @@ class PacketCorrelator:
         return all([val[0] == len(val[1]) for val in self.reply_dic.values()])
 
     def reply(self):
-        return copy.deepcopy(self.reply_dic)
+        return copy.deepcopy(self.reply_dic) # at some point: copying is not efficient, ...

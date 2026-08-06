@@ -200,6 +200,34 @@ def build_config_read(asic_dict: dict, chip: int, addr: int) -> int:
     """
     return build_config_packet(asic_dict, chip, addr, value=0, downstream=0,write=False)
 
+def valid_data_packet(asic_dict: dict, packet: int, downstream: Optional[int] = None) -> bool: # may need to add/rename file?
+    data_packet = asic_dict["data_packet"]
+    params     = data_packet["parameters"]
+    fields     = data_packet["fields"]
+
+    type_field  = fields["type"]
+    type_bits   = _get_bits(packet, *type_field["bits"])
+    type_data   = (type_bits == params["type_data"])
+
+    # must be data:
+    if not type_data:
+        return False
+
+    if downstream is not None:
+        downstream_field  = fields["downstream"]
+        downstream_bits   = _get_bits(packet, *downstream_field["bits"])
+        if not downstream_bits == downstream:
+            return False
+
+    if "parity" in fields:
+        total_bits = params.get("total_bits")
+        parity_value = params.get("parity_value")
+        if _calc_parity(packet, total_bits) != params["parity_value"]:
+            return False
+
+    return True
+
+
 def valid_config_packet(asic_dict: dict, packet: int, write: Optional[int]=None, downstream: Optional[int]=None) -> bool:
     """Check if packet is a valid configuration packet."""
     cfg_packet = asic_dict["config_packet"]
@@ -238,11 +266,11 @@ def valid_config_packet(asic_dict: dict, packet: int, write: Optional[int]=None,
 
     return True
 
-def valid_upstream_packet(asic_dict: dict, packet: int):
-    return valid_config_packet(asic_dict, packet, write=None, downstream=0)
+def valid_upstream_packet(asic_dict: dict, packet: int) -> bool:
+    return valid_config_packet(asic_dict, packet, write=None, downstream=0) or valid_data_packet(asic_dict, packet, downstream=0)
 
-def valid_downstream_packet(asic_dict: dict, packet: int):
-    return valid_config_packet(asic_dict, packet, write=None, downstream=1)
+def valid_downstream_packet(asic_dict: dict, packet: int) -> bool:
+    return valid_config_packet(asic_dict, packet, write=None, downstream=1) or valid_data_packet(asic_dict, packet, downstream=1)
 
 def valid_config_write(asic_dict: dict, packet: int, downstream: Optional[int]=None) -> bool:
     """Check if packet is a valid write packet."""

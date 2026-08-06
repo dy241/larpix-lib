@@ -1,20 +1,30 @@
 parameters: # could move to separate parameters file
   directions: [[0,1], [-1,0], [0,-1], [1,0]] # n, w, s, e
 
+
+# 0 3 6
+
 # need which ones are wired up/which ports wired to
 # missing one connection (between 7&8) to check
 asics:
   - physical_id: 0
     loc: [0,0]
     connections: 
-      n: 1
+      n: null
       w: fpga0
       s: null
-      e: null
-  - physical_id: 1
-    loc: [0,1]
+      e: 3
+  - physical_id: 3
+    loc: [1,0]
+    connections: 
+      n: 0
+      w: null 
+      s: null
+      e: 6
+  - physical_id: 6
+    loc: [2,0]
     connections: 
       n: null
-      w: null 
-      s: 0 
+      w: 3
+      s: null
       e: null

@@ -30,19 +30,19 @@ class asic_config(asic_config_iface):
             print(f"asic_config initialized with spec {spec_name} and {len(frag_lib)} fragments")
 
     # hack for TX during development:
-    def tx_list(self, l: [int]):
-        self.io_req.send_packets(1, l) # aha!
-        for w in l:
-            pkt = self.spec.format_packet(w)
-            print(f"#TRACE I/O:  0x{w:016X} {pkt}")
-            #print(f"./utils/pacman_util.py --tx 1 0x{w:016X}")
+    def tx_list(self, l: list[int], io_chan: int):
+        self.io_req.send_packets(io_chan, l)
+        # for w in l:
+        #     pkt = self.spec.format_packet(w)
+        #     print(f"#TRACE I/O:  0x{w:016X} {pkt}")
+        #     print(f"./utils/pacman_util.py --tx 1 0x{w:016X}")
 
     def list_fragments(self):
         print("available fragments:")
         for name in self.frag_lib:
             print(f"  {name}")
 
-    def set_chip_id(self, chip_id: int):
+    def set_chip_id(self, chip_id: int, io_chan: int):
         if self.verbose:
             print(f"INFO: initializing new chip with chip_id {chip_id}")
         external = { "chip_id": chip_id }
@@ -51,9 +51,9 @@ class asic_config(asic_config_iface):
             _frag.print_evaluated(evaluated)
         #chip_id is 1 after reset:
         wl = self.spec.build_config_write_list(1,update=evaluated)
-        self.tx_list(wl)
+        self.tx_list(wl, io_chan)
 
-    def init_root_chip_io(self, chip_id: int, fpga_port: str) -> None:
+    def init_root_chip_io(self, chip_id: int, fpga_port: str, io_chan: int) -> None: # TODO: check if i broke it
         if self.verbose:
             print(f"init_root_chip_io called with chip_id={chip_id}, fpga_port={fpga_port}")
         fpga = self.spec.input_index(fpga_port)
@@ -63,10 +63,10 @@ class asic_config(asic_config_iface):
             print("INFO:  evaluated init_rx_root_chip fragment:")
             _frag.print_evaluated(evaluated)
         wl = self.spec.build_config_write_list(chip_id, update=evaluated)
-        self.tx_list(wl)
-        self.init_io(chip_id)
+        self.tx_list(wl, io_chan)
+        self.init_io(chip_id, io_chan)
 
-    def init_io(self, chip_id: int) -> None:
+    def init_io(self, chip_id: int, io_chan: int) -> None:
         if self.verbose:
             print(f"init_io called with chip_id={chip_id}")
         init_rx = self.frag_lib["init_rx"];
@@ -76,9 +76,9 @@ class asic_config(asic_config_iface):
         if self.verbose:
             _frag.print_evaluated(evaluated)
         wl = self.spec.build_config_write_list(chip_id, update=evaluated)
-        self.tx_list(wl)
+        self.tx_list(wl, io_chan)
 
-    def set_input_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_input_enables(self, chip_id: int, ports: list[str], io_chan: int) -> None:
         port_idxs = self.spec.input_indices(ports)
         if self.verbose:
             print(f"set_input_enables called with chip_id={chip_id}, ports={ports}")
@@ -89,9 +89,9 @@ class asic_config(asic_config_iface):
         if self.verbose:
             _frag.print_evaluated(evaluated)
         wl = self.spec.build_config_write_list(chip_id, update=evaluated)
-        self.tx_list(wl)
+        self.tx_list(wl, io_chan)
 
-    def set_downstream_output_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_downstream_output_enables(self, chip_id: int, ports: list[str], io_chan) -> None:
         port_idxs = self.spec.output_indices(ports)
         if self.verbose:
             print(f"set_downstream_output_enables called with chip_id={chip_id}, ports={ports}")
@@ -102,9 +102,9 @@ class asic_config(asic_config_iface):
         if self.verbose:
             _frag.print_evaluated(evaluated)
         wl = self.spec.build_config_write_list(chip_id, update=evaluated)
-        self.tx_list(wl)
+        self.tx_list(wl, io_chan)
 
-    def set_upstream_output_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_upstream_output_enables(self, chip_id: int, ports: list[str], io_chan: int) -> None:
         port_idxs = self.spec.output_indices(ports)
         if self.verbose:
             print(f"set_upstream_output_enables called with chip_id={chip_id}, ports={ports}")
@@ -115,4 +115,4 @@ class asic_config(asic_config_iface):
         if self.verbose:
             _frag.print_evaluated(evaluated)
         wl = self.spec.build_config_write_list(chip_id, update=evaluated)
-        self.tx_list(wl)
+        self.tx_list(wl, io_chan)

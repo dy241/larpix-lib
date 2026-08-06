@@ -16,32 +16,32 @@ class asic_config_iface(ABC):
     """
 
     @abstractmethod
-    def set_chip_id(self, chip_id) -> None:
+    def set_chip_id(self, chip_id, io_chan) -> None:
         """Set the chip_id"""
         pass
 
     @abstractmethod
-    def init_root_chip_io(self, chip_id: int, fpga_port: str) -> None:
+    def init_root_chip_io(self, chip_id: int, fpga_port: str, io_chan: int) -> None:
         """Initialize the root chip for I/O"""
         pass
 
     @abstractmethod
-    def init_io(self, chip_id: int) -> None:
+    def init_io(self, chip_id: int, io_chan: int) -> None:
         """Initialize a non-root chip for I/O"""
         pass
 
     @abstractmethod
-    def set_input_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_input_enables(self, chip_id: int, ports: list[str], io_chan: int) -> None:
         """Set enables for receiving (either direction)"""
         pass
 
     @abstractmethod
-    def set_downstream_output_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_downstream_output_enables(self, chip_id: int, ports: list[str], io_chan: int) -> None:
         """Set enables for transmitting downstream (toward FPGA)"""
         pass
 
     @abstractmethod
-    def set_upstream_output_enables(self, chip_id: int, ports: list[str]) -> None:
+    def set_upstream_output_enables(self, chip_id: int, ports: list[str], io_chan: int) -> None:
         """Set enables for transmitting upstream (from FPGA)"""
         pass
 

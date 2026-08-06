@@ -1,0 +1,24 @@
+#
+# 013+023+033
+#  +       +
+# 012     032
+#  +       +
+# 011     031
+#  *
+#
+
+chips:
+  - chip_id: 11
+    w: fpga
+    n: 12
+  - chip_id: 12
+    n: 13
+  - chip_id: 13
+    e: 23
+  - chip_id: 23
+    e: 33
+  - chip_id: 31
+  - chip_id: 32
+    s: 31
+  - chip_id: 33
+    s: 32

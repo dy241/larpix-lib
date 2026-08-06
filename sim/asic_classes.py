@@ -10,6 +10,8 @@ import copy
 import time
 from collections import deque
 
+# pydoc
+
 def hexify(num):
     # return a 8 byte padded hex string given an int
     # https://stackoverflow.com/questions/12638408/decorating-hex-function-to-pad-zeros
@@ -18,7 +20,7 @@ def hexify(num):
 class ASIC:
     # class attributes
 
-    def __init__(self, asic_spec):
+    def __init__(self, asic_spec: asic_spec):
         # instance attributes
         # needs to "know" what it's connected to
         # default chip id, depending on version
@@ -113,7 +115,7 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
     # should always be a rectangular-ish grid
     # specify input port for fpga
     
-    def __init__(self, hw_yaml, io_yaml, asic_spec):
+    def __init__(self, hw_yaml, asic_spec):
         
         self.asic_spec = asic_spec
         self.asic_num_ports = asic_spec.num_ports()
@@ -139,10 +141,6 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
         self.y_max = -np.inf
         self.loc_dic = {} # loc to physical id
 
-        # parse fpga to io chan yaml
-        io_cfg = common.dict_from_yaml(io_yaml)
-        self.fpga_to_io_dic = io_cfg["channels"]
-        
         # parse hw yaml!
         hw_cfg = common.dict_from_yaml(hw_yaml)
         
@@ -176,11 +174,19 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
             for dir in connections.keys():
                 neighbor_id = connections[dir]
                 if isinstance(neighbor_id, str):
-                    io_chan = self.fpga_to_io_dic[neighbor_id]
-                    if io_chan not in self.root_asics:
-                        self.root_asics[io_chan] = [[asic_id, dir]] # e.g. root_asics["fpga0"] = [asic_id, receiving channel]
+                    if neighbor_id[:4] != "fpga":
+                        print("name error in hw config")
+                        continue
+                    try:
+                        io_chan = int(neighbor_id[4:])
+                    except ValueError:
+                        print("name error in hw config")
+                        continue
                     else:
-                        self.root_asics[io_chan].append([asic_id, dir])
+                        if io_chan not in self.root_asics:
+                            self.root_asics[io_chan] = [[asic_id, self.invert_dir(dir)]] # e.g. root_asics["fpga0"] = [asic_id, receiving channel]
+                        else:
+                            self.root_asics[io_chan].append([asic_id, self.invert_dir(dir)])
                 self.asic_connections[asic_id][dir] = neighbor_id
             
         # TODO: check if nonexistent/one-way connections/more config validation
@@ -216,7 +222,7 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
             while not self.all_asic_buffers_empty():
                 counter += 1
                 self._single_update()
-                if counter > self.timeout: 
+                if counter > self.timeout:
                     break
         else:
             for _ in range(cycles):
@@ -250,7 +256,7 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
                         receiving_asic.rx(packet, receive_chan)
                     elif type(receiver_id) == str:
                         # send to fpga
-                        io_chan = self.fpga_to_io_dic[receiver_id]
+                        io_chan = int(receiver_id[4:])
                         self.received_packets.append((packet, io_chan)) #TODO: add print method later with hex so that here it can stay as ints
                     else:
                         print("exception in AsicGrid.update()")
@@ -289,7 +295,7 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
         if type(keyword) == str and keyword not in self.asic_spec.field_to_reg:
             print(f"{keyword} not in field_to_reg")
         else:
-            for y in range(self.y_min, self.y_max+1):
+            for y in range(self.y_max, self.y_min-1,-1): # goes in the right order (upmost is highest y)
                 print("___________" * (self.x_max-self.x_min+1), end="\n")
                 for x in range(self.x_min, self.x_max+1):
                     print("|", end="")

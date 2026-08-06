@@ -16,17 +16,14 @@ from larpix_control import common, asic_spec, asic_spec_from_yaml, fragment_lib_
 verbose = False
 
 asic_s = asic_spec_from_yaml("config/asics/larpix_v3.yaml")
-hw_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_ex_two.yaml"
+hw_yaml = "/Users/davidyang/Desktop/larpix-lib/sim/hw_cfg_3x1.yaml"
 io_req = ac.AsicGrid(hw_yaml, asic_s)
 
 def main():
 
         frag_lib = fragment_lib_from_yaml("config/fragments/library.yaml", "larpix_v3")
-        raw_network = common.dict_from_yaml("config/hydra/single.yaml")
+        raw_network = common.dict_from_yaml("config/hydra/3x1.yaml")
         raw_params  = common.dict_from_yaml("config/hydra/parameters.yaml")
-
-        # Replaced original (pacman_io_request("config/network/single_local.yaml")) with sim AsicGrid
-
 
         cfg = asic_config(io_req, asic_s, frag_lib, verbose=verbose)
         strand = hydra_strand(raw_network, raw_params, cfg, 0)
@@ -51,6 +48,11 @@ def main():
         if verbose:
                 strand.print_network_state()
 
+        print("\n"*10)
 
+manual = True
 if __name__ == "__main__":
     main()
+    io_req.print_grid(122)
+    io_req.update()
+    io_req.print_grid(122)
