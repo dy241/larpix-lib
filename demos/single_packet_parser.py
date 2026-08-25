@@ -18,7 +18,7 @@ asic_spec = _as.asic_spec_from_yaml("/Users/davidyang/Desktop/larpix-lib/config/
 asic_dict = asic_spec.asic_dict
 _pkt.validate_config_packet_dict(asic_dict,verbose=True)
 
-chip = 0x1f
+chip = 0x21
 # us, ds, listen is 124, 125, 126, chip_id is 122
 addr = 126
 value = 0x0f
@@ -38,7 +38,7 @@ _pkt.print_packet_detailed(asic_dict, packet)
 
 print(f"*** intepreting packet from provide value: ***")
 #pkt = 0x422541391C2DE82F
-pkt = 0x822541391C05F42E
+pkt = 0x022541391C3DF87E
 print(f"packet:  0x{pkt:016X}")
 _pkt.print_packet_detailed(asic_dict, pkt)
 

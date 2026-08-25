@@ -17,8 +17,8 @@ asics:
   - physical_id: 3
     loc: [1,0]
     connections: 
-      n: 0
-      w: null 
+      n: null
+      w: 0 
       s: null
       e: 6
   - physical_id: 6

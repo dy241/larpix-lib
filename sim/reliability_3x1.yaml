@@ -1,0 +1,7 @@
+asics:
+  - physical_id: 3
+    bad_connections: 
+      6: 0.9
+  - physical_id: 6
+    bad_connections:
+      3: 0.9

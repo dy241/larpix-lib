@@ -5,6 +5,7 @@ from larpix_control.common.interfaces import io_request_iface
 import sim._asic_helper as _as
 import numpy as np
 from packet_correlator import PacketCorrelator
+import random
 
 import copy
 import time
@@ -233,7 +234,7 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
                 if counter > self.timeout:
                     break
 
-    def _single_update(self):
+    def _single_update(self, reliability_bool=False): # reliability_bool should be false unless dealing with a "bad" grid
         # pop one packet from each buffer
         for id in self.asic_ids.keys(): # iterate over asics
             asic = self.asic_ids[id]
@@ -248,6 +249,11 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
                     packet = asic.tx(chan)
                     out_dir = self.idx_to_dir(chan, asic_out=True)
                     receiver_id = connection_dic[out_dir]
+                    if reliability_bool:
+                        reliability = self.get_reliability(id, receiver_id)
+                        val = random.random() # random real 0<=x<1
+                        if reliability < val: # "difficulty check" for sending packet
+                            continue # skips packet
                     if type(receiver_id) == int:
                         # send to asic
                         receiving_asic = self.asic_ids[receiver_id]
@@ -334,3 +340,39 @@ class AsicGrid(io_request_iface): # config defined: should take in a yaml instea
     
     def set_timeout(self, timeout_ms):
         self.timeout = timeout_ms * 1000 # assume each cycle takes 1 us
+
+
+class BadAsicGrid(AsicGrid):
+
+    def __init__(self, hw_yaml, asic_spec):
+        super().__init__(hw_yaml, asic_spec)
+        self.link_qualities = {}
+
+    def set_reliabilities(self, reliability_yaml):
+        link_cfg = common.dict_from_yaml(reliability_yaml)
+        asic_list = link_cfg["asics"]
+        for asic in asic_list:
+            hw_id1 = asic["physical_id"]
+            bad_connections = asic["bad_connections"]
+            for hw_id2 in bad_connections.keys():
+                reliability = bad_connections[hw_id2]
+                self.update_link_quality(hw_id1, hw_id2, reliability)
+
+    def update_link_quality(self, hw_id1, hw_id2, reliability):
+        if not hw_id1 in self.link_qualities:
+            self.link_qualities[hw_id1] = {}
+        if not hw_id2 in self.link_qualities:
+            self.link_qualities[hw_id2] = {}
+        self.link_qualities[hw_id1][hw_id2] = reliability
+        self.link_qualities[hw_id2][hw_id1] = reliability
+
+    def get_reliability(self, id1, id2): # ordered
+        if id1 in self.link_qualities and id2 in self.link_qualities[id1]:
+            reliability = self.link_qualities[id1][id2]
+        else:
+            reliability = 1.
+        return reliability
+
+    def _single_update(self):
+        # pop one packet from each buffer
+        super()._single_update(True)
